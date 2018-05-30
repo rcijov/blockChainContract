@@ -37,7 +37,7 @@ contract Data{
         return true;
     }
     
-    function addUser() public returns (bool success){
+    function addUser() private returns (bool success){
         
         users[msg.sender].tree = new Tree();
         users[msg.sender].root = empty;
