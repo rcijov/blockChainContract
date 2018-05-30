@@ -4,14 +4,16 @@ contract Tree{
     
     mapping(bytes32=>bytes32) public leafAndRoot;
     
-    function getLeafAndRoot(bytes32 _leaf) returns (bytes32 root)
+    function getLeafAndRoot(bytes32 _leaf) constant public returns (bytes32 root)
     {
         return leafAndRoot[_leaf];
     }
     
-    function setLeafAndRoot(bytes32 _leaf, bytes32 _data)
+    function setLeafAndRoot(bytes32 _leaf, bytes32 _data) public returns (bool success)
     {
         leafAndRoot[_leaf] = _data;
+        
+        return true;
     }
 }
 
@@ -21,6 +23,7 @@ contract Data{
         bytes32 root;
         Tree tree;
         uint length;
+        bool exists;
     }
 
     bytes32 public empty;                                                   
@@ -29,12 +32,14 @@ contract Data{
     
     function resetData(address _user) public returns (bool success){
         
+        users[_user].root = empty;
         users[_user].tree = new Tree();
+        users[_user].length = 0;
         
         return true;
     }
     
-    function addUser(address _user)
+    function addUser(address _user) public
     {
         users[_user].tree = new Tree();
     }
@@ -45,7 +50,7 @@ contract Data{
         bytes32 oldRoot = getUserRoot(_user);
         bytes32 newRoot = hashTheTwo(leaf, oldRoot);
         
-        if(users[_user].length == 0) { users[_user].tree = new Tree(); }
+        if(!users[_user].exists){ users[_user].tree = new Tree(); users[_user].exists = true; }
         
         users[_user].tree.setLeafAndRoot(leaf,newRoot);
         users[_user].root = newRoot;
