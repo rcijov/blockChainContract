@@ -29,8 +29,6 @@ contract Data{
     
     function resetData(address _user) public returns (bool success){
         
-        users[_user].root = 0x0000000000000000000000000000000000000000000000000000000000000000;
-        
         users[_user].tree = new Tree();
         
         return true;
