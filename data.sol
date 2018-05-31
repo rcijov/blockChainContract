@@ -3,6 +3,7 @@ pragma solidity ^0.4.6;
 contract Tree{
     
     mapping(bytes32=>bytes32) public leafAndRoot;
+    bytes32 public empty;
     
     function getLeafAndRoot(bytes32 _leaf) constant public returns (bytes32 root)
     {
@@ -12,88 +13,158 @@ contract Tree{
     function setLeafAndRoot(bytes32 _leaf, bytes32 _data) public returns (bool success)
     {
         leafAndRoot[_leaf] = _data;
-        
+        return true;
+    }
+    
+    function removeLeaf(bytes32 _leaf) public returns (bool success)
+    {
+        leafAndRoot[_leaf] = empty;
+        return true;
+    }
+    
+    function updateLeaf(bytes32 _leaf, bytes32 _data) public returns (bool success)
+    {
+        leafAndRoot[_leaf] = _data;
         return true;
     }
 }
 
-contract Data{
+contract User{
     
     struct tree{
         bytes32 root;
         Tree tree;
-        uint length;
         bool exists;
     }
-
-    bytes32 public empty;                                                   
+    
+    address private owner;
     
     mapping (address=>tree) public users;
     
-    function resetData() public returns (bool success){
-        
-        addUser();
-        
-        return true;
-    }
-    
-    function addUser() private returns (bool success){
-        
+    constructor() public {
         users[msg.sender].tree = new Tree();
-        users[msg.sender].root = empty;
-        users[msg.sender].length = 0;
+    }
+    
+    function setRoot(bytes32 _data) public returns (bool){
         
+        users[msg.sender].root = _data;
         return true;
     }
     
-    function addData(uint256 _data) public returns (bool success) {  
+    function getRoot() constant public returns (bytes32){
+        return users[msg.sender].root;
+    }
+    
+    function getLeafAndRoot(bytes32 _leaf) constant public returns (bytes32 root){
+        return users[msg.sender].tree.getLeafAndRoot(_leaf);
+    }
+    
+    function setLeafAndRoot(bytes32 _leaf, bytes32 _data) public returns (bool success){
+        return users[msg.sender].tree.setLeafAndRoot(_leaf,_data);
+    }
+    
+    function removeLeaf(bytes32 _leaf) public returns (bool success){
+        return users[msg.sender].tree.removeLeaf(_leaf);
+    }
+    
+    function updateLeaf(bytes32 _leaf, bytes32 _data) public returns (bool success){
+        return users[msg.sender].tree.updateLeaf(_leaf,_data);
+    }
+
+}
+
+contract Data{
+    
+    mapping (bytes32=>string) public datas;
+    
+    function setData(bytes32 _id, string _data) public returns (bool)
+    {
+        datas[_id] = _data;
+        return true;
+    }
+    
+    function getData(bytes32 _id) constant public returns (string)
+    {
+        return datas[_id];
+    }
+}
+
+contract Merkle{
+
+    address private owner;
+    
+    User private user;
+    Data private data;
+    
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+    
+    constructor() public {
+        owner = msg.sender;
+        user = new User();
+        data = new Data();
+    }
+    
+    function reset() public returns (bool success)
+    {
+        resetData();
+        resetUser();
+        return true;
+    }
+    
+    function resetData() private returns (bool success){
+        
+        data = new Data();
+        return true;
+    }
+    
+    function resetUser() private returns (bool success){
+        
+        user = new User();
+        return true;
+    }
+    
+    function addData(string _data) public onlyOwner returns (bool success) {  
         
         bytes32 leaf    = keccak256(abi.encodePacked(_data));   
         bytes32 oldRoot = getUserRoot();
         bytes32 newRoot = hashTheTwo(leaf, oldRoot);
         
-        if(!users[msg.sender].exists){ addUser(); }
-        
-        users[msg.sender].tree.setLeafAndRoot(leaf,newRoot);
-        users[msg.sender].root = newRoot;
-        users[msg.sender].length += 1;
+        user.setLeafAndRoot(leaf,newRoot);
+        user.setRoot(newRoot);
+        data.setData(newRoot,_data);
 
         return true;
     }
     
-    function getRoot(uint256 _leafData) constant public returns (bytes32 root) { 
+    function getData(bytes32 _id) constant public onlyOwner returns (string) {
+        return data.getData(_id);
+    }
+    
+    function unsetData(bytes32 _id) public onlyOwner returns (bool success){
+        data.setData(_id,"");
+        return user.removeLeaf(_id);
+    }
+    
+    function updateData(bytes32 _id, string _data) public onlyOwner returns (bool success){
+        data.setData(_id,_data);
+        return user.updateLeaf(_id,keccak256(abi.encodePacked(_data)));
+    }
+    
+    function getRoot(string _leafData) constant public onlyOwner returns (bytes32 root) { 
         
         bytes32 leaf = keccak256(abi.encodePacked(_leafData));                                            
-        return users[msg.sender].tree.getLeafAndRoot(leaf);
+        return user.getLeafAndRoot(leaf);
     }
     
     function getUserRoot() constant public returns (bytes32 root) {      
-        return users[msg.sender].root;
+        return user.getRoot();
     }
 
     function hashTheTwo(bytes32 _a, bytes32 _b) pure private returns (bytes32 hashed) {         
         return keccak256(abi.encodePacked(_a, _b));
     }
     
-    function checkDataIntegrity(uint256[] _data) constant public returns (bool complete) { 
-         
-        bytes32 oldRoot = empty;                                               
-        for (uint i = 0; i < _data.length; i++) {         
-            bytes32 data = keccak256(abi.encodePacked(_data[i]));          
-            bytes32 root = hashTheTwo(data, oldRoot);
-            
-            if(root == getRoot(_data[i])){         
-                oldRoot = root;
-                continue;
-            }else{
-                return false;
-            }
-        }        
-
-        if (oldRoot == getUserRoot()){
-            return true;
-        }else{
-            return false;
-        }
-    }
 }
