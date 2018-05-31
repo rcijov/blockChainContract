@@ -95,6 +95,7 @@ contract Merkle{
     
     User private user;
     Data private data;
+    bytes32 empty;
     
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -150,13 +151,7 @@ contract Merkle{
     
     function updateData(bytes32 _id, string _data) public onlyOwner returns (bool success){
         data.setData(_id,_data);
-        return user.updateLeaf(_id,keccak256(abi.encodePacked(_data)));
-    }
-    
-    function getRoot(string _leafData) constant public onlyOwner returns (bytes32 root) { 
-        
-        bytes32 leaf = keccak256(abi.encodePacked(_leafData));                                            
-        return user.getLeafAndRoot(leaf);
+        return user.updateLeaf(keccak256(abi.encodePacked(_data)),_id);
     }
     
     function getUserRoot() constant public returns (bytes32 root) {      
