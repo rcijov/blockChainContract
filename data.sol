@@ -37,7 +37,7 @@ contract User{
     
     mapping (address=>tree) public users;
     
-    function User() public {
+    constructor() public {
         users[msg.sender].tree = new Tree();
     }
     
@@ -77,7 +77,7 @@ contract Data{
         return true;
     }
 
-    function stringToBytes32(string memory source) returns (bytes32 result) {
+    function stringToBytes32(string memory source) pure public returns (bytes32 result) {
         bytes memory tempEmptyStringTest = bytes(source);
         if (tempEmptyStringTest.length == 0) {
             return 0x0;
@@ -106,7 +106,7 @@ contract Merkle{
         _;
     }
     
-    function Merkle() public {
+    constructor() public {
         owner = msg.sender;
         user = new User();
         data = new Data();
@@ -129,7 +129,7 @@ contract Merkle{
     }
     
     function addData(string _data) public onlyOwner returns (bool success) {   
-        bytes32 leaf    = keccak256(_data);   
+        bytes32 leaf    = keccak256(abi.encodePacked(_data));   
         bytes32 oldRoot = getUserRoot();
         bytes32 newRoot = hashTheTwo(leaf, oldRoot);
         
@@ -159,15 +159,15 @@ contract Merkle{
     
     function updateData(bytes32 _id, string _data) public onlyOwner returns (bool success){
         data.setData(_id,_data);
-        return user.updateLeaf(keccak256(_data),_id);
+        return user.updateLeaf(keccak256(abi.encodePacked(_data)),_id);
     }
     
     function getUserRoot() constant public returns (bytes32 root) {      
         return user.getRoot();
     }
 
-    function hashTheTwo(bytes32 _a, bytes32 _b) private returns (bytes32 hashed) {         
-        return keccak256(_a, _b);
+    function hashTheTwo(bytes32 _a, bytes32 _b) pure private returns (bytes32 hashed) {         
+        return keccak256(abi.encodePacked(_a, _b));
     }
     
 }
